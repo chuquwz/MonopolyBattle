@@ -21,6 +21,20 @@ import { initDatabase, getDatabase } from './config/database.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/error.middleware.js';
 
+// Repositories
+import { GameRepository } from './repositories/game.repository.js';
+import { TeamRepository } from './repositories/team.repository.js';
+import { PlayerRepository } from './repositories/player.repository.js';
+
+// Services
+import { TeamService } from './services/team.service.js';
+import { GameService } from './services/game.service.js';
+
+// Controllers & Middleware
+import { AuthController } from './controllers/auth.controller.js';
+import { GameController } from './controllers/game.controller.js';
+import { requireAuth, requireRole } from './middleware/auth.middleware.js';
+
 const helmet = helmetModule as any;
 const rateLimit = rateLimitModule as any;
 
@@ -80,6 +94,25 @@ app.get('/api/health', (req, res, next) => {
     next(error);
   }
 });
+
+// Initialize Repositories, Services and Controllers
+const db = getDatabase();
+const gameRepo = new GameRepository(db);
+const teamRepo = new TeamRepository(db);
+const playerRepo = new PlayerRepository(db);
+
+const teamService = new TeamService(teamRepo, playerRepo);
+const gameService = new GameService(gameRepo, teamRepo, playerRepo, teamService);
+
+const authController = new AuthController(gameService);
+const gameController = new GameController(gameService, teamService, playerRepo);
+
+// API Routes
+app.post('/api/auth/host', authController.hostLogin);
+app.post('/api/auth/join', authController.join);
+
+app.post('/api/games', requireAuth, requireRole(['host']), gameController.create);
+app.get('/api/games/:id', requireAuth, gameController.getGame);
 
 // Attach global error middleware
 app.use(errorHandler);

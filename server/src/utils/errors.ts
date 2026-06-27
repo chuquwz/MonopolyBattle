@@ -13,6 +13,8 @@ export const viErrors = {
   teamNotFound: 'Không tìm thấy đội chơi',
   playerNotFound: 'Không tìm thấy người chơi',
   forbidden: 'Không có quyền thực hiện hành động này',
+  gameStarted: 'Trò chơi đã bắt đầu, không thể tham gia.',
+  lobbyFull: 'Phòng chơi đã đầy (tối đa 9 đội chơi).',
 };
 
 export class AppError extends Error {
