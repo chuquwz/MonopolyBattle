@@ -10,7 +10,6 @@ process.on('unhandledRejection', (reason, promise) => {
 
 import express from 'express';
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import cors from 'cors';
 import helmetModule from 'helmet';
 import rateLimitModule from 'express-rate-limit';
@@ -20,6 +19,7 @@ import { config } from './config/index.js';
 import { initDatabase, getDatabase } from './config/database.js';
 import { logger } from './utils/logger.js';
 import { errorHandler } from './middleware/error.middleware.js';
+import { io } from './socket/index.js';
 
 // Repositories
 import { GameRepository } from './repositories/game.repository.js';
@@ -118,24 +118,7 @@ app.get('/api/games/:id', requireAuth, gameController.getGame);
 app.use(errorHandler);
 
 // Socket.IO server initialization
-const io = new Server(httpServer, {
-  cors: {
-    origin: config.CLIENT_URL,
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  pingInterval: 10000,
-  pingTimeout: 5000,
-});
-
-// Socket.IO connection event placeholder (handlers to be wired in Day 2)
-io.on('connection', (socket) => {
-  logger.info({ socketId: socket.id }, 'New client connected via Socket.IO');
-
-  socket.on('disconnect', () => {
-    logger.info({ socketId: socket.id }, 'Client disconnected from Socket.IO');
-  });
-});
+io.attach(httpServer);
 
 // Initialize database and start listening
 try {
