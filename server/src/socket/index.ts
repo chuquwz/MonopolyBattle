@@ -11,6 +11,7 @@ import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
 import { handleConnection } from './connection.handler.js';
 import { registerHostHandlers } from './host-event.handler.js';
+import { registerGameEventHandlers } from './game-event.handler.js';
 
 /**
  * Interface representing all events emitted by the server to the client.
@@ -127,6 +128,9 @@ io.on('connection', (socket: MonopolySocket) => {
 
   // Register host command listeners
   registerHostHandlers(socket);
+
+  // Register player gameplay listeners (e.g. decision submits)
+  registerGameEventHandlers(socket);
 });
 
 /**
