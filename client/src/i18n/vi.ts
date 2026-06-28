@@ -126,6 +126,14 @@ export const vi = {
       otherTeamsTitle: "Đội chơi khác trong phòng chờ",
       noOtherTeams: "Chưa có đội chơi khác tham gia.",
     },
+    playGame: {
+      decisionsPanelTitle: "Bảng quyết định chiến lược",
+    },
+    results: {
+      title: "Kết quả chung cuộc",
+      subtitle: "Bảng xếp hạng tài chính và thị phần của các tập đoàn",
+      leaderboardTitle: "Bảng xếp hạng chung cuộc",
+    },
   },
   errors: {
     invalidInput: "Dữ liệu nhập vào không hợp lệ.",

@@ -36,7 +36,7 @@ gantt
     section Day 4 — Frontend Core
     Next.js setup + design sys   :done, d4a, 4, 2h
     Landing + Join + Host pages  :done, d4b, after d4a, 3h
-    Game page + Zustand stores   :d4c, after d4b, 3h
+    Game page + Zustand stores   :done, d4c, after d4b, 3h
 
     section Day 5 — Game UI
     Decision panel + Timer       :d5a, 5, 2h
@@ -381,14 +381,14 @@ gantt
 
 #### Task 15 — Game Page + Zustand Stores `3h` `Critical`
 
-- [ ] Create stores/game.store.ts — full ClientGameState + all actions
-- [ ] Create stores/socket.store.ts — connection state + socket ref
-- [ ] Create stores/ui.store.ts — modal/overlay/toast visibility flags
-- [ ] Create hooks/use-socket.ts — initializes socket, registers all event handlers, cleans up on unmount
-- [ ] Create hooks/use-game-state.ts — selector hooks for common slices
+- [x] Create stores/game.store.ts — full ClientGameState + all actions
+- [x] Create stores/socket.store.ts — connection state + socket ref
+- [x] Create stores/ui.store.ts — modal/overlay/toast visibility flags
+- [x] Create hooks/use-socket.ts — initializes socket, registers all event handlers, cleans up on unmount
+- [x] Create hooks/use-game-state.ts — selector hooks for common slices
 - [ ] Create hooks/use-countdown.ts — setInterval countdown hook
-- [ ] Create app/play/game/page.tsx shell — phase-based view rendering driven by gameStore.phase
-- [ ] Register all Socket.IO event handlers: round:start, round:results, event:triggered, narrator:message, quiz:start, game:over
+- [x] Create app/play/game/page.tsx shell — phase-based view rendering driven by gameStore.phase
+- [x] Register all Socket.IO event handlers: round:start, round:results, event:triggered, narrator:message, quiz:start, game:over
 
 **Deliverable:** Game page renders, socket connected, stores update on events
 

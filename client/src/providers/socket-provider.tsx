@@ -1,21 +1,11 @@
 "use client";
 
 import * as React from "react";
-import type { Socket } from "socket.io-client";
 import { getSocket } from "@/lib/socket";
 import { SOCKET_EVENTS } from "@/types/socket.types";
-import type { GameStateSyncPayload } from "@/types/socket.types";
-
-export interface SocketContextType {
-  socket: Socket | null;
-  isConnected: boolean;
-  gameState: GameStateSyncPayload | null;
-  joinRoom: (roomCode: string, teamName: string, playerName: string) => void;
-  submitDecision: (decisionType: string) => void;
-  submitQuizAnswer: (questionId: string, selectedOption: number, timeTakenMs: number) => void;
-}
-
-export const SocketContext = React.createContext<SocketContextType | undefined>(undefined);
+import { useSocketStore } from "@/stores/socket.store";
+import { useGameStore } from "@/stores/game.store";
+import { useUiStore } from "@/stores/ui.store";
 
 export interface SocketProviderProps {
   children: React.ReactNode;
@@ -23,140 +13,170 @@ export interface SocketProviderProps {
 }
 
 export function SocketProvider({ children, url }: SocketProviderProps) {
-  const [socket, setSocket] = React.useState<Socket | null>(null);
-  const [isConnected, setIsConnected] = React.useState(false);
-  const [gameState, setGameState] = React.useState<GameStateSyncPayload | null>(null);
+  const { setSocket, setConnected, setConnecting, setError } = useSocketStore();
 
   React.useEffect(() => {
+    // Get singleton Socket.IO client instance
     const socketInstance = getSocket(url);
     if (!socketInstance) return;
 
+    // Set socket instance in Zustand store
     setSocket(socketInstance);
-    
-    // Connect automatically on mount if client-side
+    setConnecting(true);
+
+    // Establish WebSocket connection
     socketInstance.connect();
 
+    // Connection events
     const onConnect = () => {
-      setIsConnected(true);
+      setConnected(true);
+      setConnecting(false);
+      setError(null);
     };
 
     const onDisconnect = () => {
-      setIsConnected(false);
+      setConnected(false);
     };
 
-    const onGameStateSync = (payload: GameStateSyncPayload) => {
-      setGameState(payload);
+    const onConnectError = (err: Error) => {
+      setConnected(false);
+      setConnecting(false);
+      setError(err.message);
     };
 
-    const onGamePhaseChange = (data: { phase: GameStateSyncPayload["phase"]; currentRound: number }) => {
-      setGameState((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          phase: data.phase,
-          currentRound: data.currentRound,
-        };
+    // Game logic events mapped to Zustand stores
+    const onGameStateSync = (payload: any) => {
+      useGameStore.getState().syncFullState(payload);
+    };
+
+    const onGamePhaseChange = (payload: { phase: any; roundNumber: number }) => {
+      useGameStore.setState({
+        phase: payload.phase,
+        currentRound: payload.roundNumber,
       });
     };
 
-    const onRoundTick = (data: { secondsLeft: number }) => {
-      setGameState((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          roundTimeLeft: data.secondsLeft,
-        };
+    const onRoundStart = (payload: { roundNumber: number; decisions: any[]; timeLimit: number }) => {
+      useGameStore.setState({
+        currentRound: payload.roundNumber,
+        availableDecisions: payload.decisions,
+        roundTimeLeft: payload.timeLimit,
+        selectedDecision: null, // Reset decision on new round start
       });
     };
 
-    const onGameCountdown = (data: { secondsLeft: number }) => {
-      setGameState((prev) => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          roundTimeLeft: data.secondsLeft,
-        };
+    const onRoundTick = (payload: { timeLeft: number }) => {
+      useGameStore.setState({
+        roundTimeLeft: payload.timeLeft,
       });
     };
 
+    const onRoundResults = (payload: { teamResults: any[]; marketState: any }) => {
+      // Round results can trigger UI updates or specific results lists
+      // Real-time scores will also sync via next state-sync
+    };
+
+    const onEventTriggered = (payload: any) => {
+      const event = payload.event || payload;
+      useGameStore.setState({ currentEvent: event });
+      useUiStore.setState({ showEventOverlay: true });
+    };
+
+    const onTeamStatsUpdate = (payload: any) => {
+      useGameStore.getState().updateMyTeam(payload);
+    };
+
+    const onNarratorMessage = (payload: { text: string; type?: "info" | "warning" | "education" }) => {
+      useGameStore.setState({
+        narration: {
+          text: payload.text,
+          isVisible: true,
+          type: payload.type || "info",
+        },
+      });
+      useUiStore.setState({ showNarrator: true });
+    };
+
+    const onQuizStart = (payload: { question: string; options: string[]; timeLimit: number }) => {
+      useGameStore.setState({
+        activeQuiz: {
+          question: payload.question,
+          options: payload.options,
+          timeLimit: payload.timeLimit,
+          answered: false,
+        },
+      });
+      useUiStore.setState({ showQuizModal: true });
+    };
+
+    const onQuizResults = (payload: any) => {
+      const active = useGameStore.getState().activeQuiz;
+      if (active) {
+        useGameStore.setState({
+          activeQuiz: {
+            ...active,
+            answered: true,
+          },
+        });
+      }
+    };
+
+    const onGameOver = (payload: { finalLeaderboard: any[] }) => {
+      useGameStore.setState({
+        phase: "finished",
+        leaderboard: payload.finalLeaderboard || [],
+      });
+    };
+
+    const onError = (payload: { message: string }) => {
+      useUiStore.getState().addToast({
+        title: "Lỗi",
+        description: payload.message,
+        variant: "destructive",
+      });
+    };
+
+    // Bind listeners
     socketInstance.on("connect", onConnect);
     socketInstance.on("disconnect", onDisconnect);
+    socketInstance.on("connect_error", onConnectError);
     socketInstance.on(SOCKET_EVENTS.GAME_STATE_SYNC, onGameStateSync);
     socketInstance.on(SOCKET_EVENTS.GAME_PHASE_CHANGE, onGamePhaseChange);
+    socketInstance.on(SOCKET_EVENTS.ROUND_START, onRoundStart);
     socketInstance.on(SOCKET_EVENTS.ROUND_TICK, onRoundTick);
-    socketInstance.on(SOCKET_EVENTS.GAME_COUNTDOWN, onGameCountdown);
+    socketInstance.on(SOCKET_EVENTS.ROUND_RESULTS, onRoundResults);
+    socketInstance.on(SOCKET_EVENTS.EVENT_TRIGGERED, onEventTriggered);
+    socketInstance.on(SOCKET_EVENTS.TEAM_STATS_UPDATE, onTeamStatsUpdate);
+    socketInstance.on(SOCKET_EVENTS.NARRATOR_MESSAGE, onNarratorMessage);
+    socketInstance.on(SOCKET_EVENTS.QUIZ_START, onQuizStart);
+    socketInstance.on(SOCKET_EVENTS.QUIZ_RESULTS, onQuizResults);
+    socketInstance.on(SOCKET_EVENTS.GAME_OVER, onGameOver);
+    socketInstance.on(SOCKET_EVENTS.ERROR, onError);
 
+    // Sync initial state if socket is already connected
     if (socketInstance.connected) {
-      setIsConnected(true);
+      onConnect();
     }
 
     return () => {
+      // Unbind all listeners on unmount
       socketInstance.off("connect", onConnect);
       socketInstance.off("disconnect", onDisconnect);
+      socketInstance.off("connect_error", onConnectError);
       socketInstance.off(SOCKET_EVENTS.GAME_STATE_SYNC, onGameStateSync);
       socketInstance.off(SOCKET_EVENTS.GAME_PHASE_CHANGE, onGamePhaseChange);
+      socketInstance.off(SOCKET_EVENTS.ROUND_START, onRoundStart);
       socketInstance.off(SOCKET_EVENTS.ROUND_TICK, onRoundTick);
-      socketInstance.off(SOCKET_EVENTS.GAME_COUNTDOWN, onGameCountdown);
-      socketInstance.disconnect();
+      socketInstance.off(SOCKET_EVENTS.ROUND_RESULTS, onRoundResults);
+      socketInstance.off(SOCKET_EVENTS.EVENT_TRIGGERED, onEventTriggered);
+      socketInstance.off(SOCKET_EVENTS.TEAM_STATS_UPDATE, onTeamStatsUpdate);
+      socketInstance.off(SOCKET_EVENTS.NARRATOR_MESSAGE, onNarratorMessage);
+      socketInstance.off(SOCKET_EVENTS.QUIZ_START, onQuizStart);
+      socketInstance.off(SOCKET_EVENTS.QUIZ_RESULTS, onQuizResults);
+      socketInstance.off(SOCKET_EVENTS.GAME_OVER, onGameOver);
+      socketInstance.off(SOCKET_EVENTS.ERROR, onError);
     };
-  }, [url]);
+  }, [url, setSocket, setConnected, setConnecting, setError]);
 
-  const joinRoom = React.useCallback(
-    (roomCode: string, teamName: string, playerName: string) => {
-      if (socket && isConnected) {
-        socket.emit(SOCKET_EVENTS.PLAYER_JOIN, {
-          roomCode: roomCode.toUpperCase(),
-          teamName,
-          playerName,
-        });
-      }
-    },
-    [socket, isConnected]
-  );
-
-  const submitDecision = React.useCallback(
-    (decisionType: string) => {
-      if (socket && isConnected && gameState) {
-        const roundId = "current"; // Will be populated based on server round tracking
-        const teamId = gameState.myTeam?.id || "";
-        socket.emit(SOCKET_EVENTS.PLAYER_DECISION, {
-          roundId,
-          teamId,
-          decisionType,
-        });
-      }
-    },
-    [socket, isConnected, gameState]
-  );
-
-  const submitQuizAnswer = React.useCallback(
-    (questionId: string, selectedOption: number, timeTakenMs: number) => {
-      if (socket && isConnected && gameState) {
-        const roundId = "current";
-        const teamId = gameState.myTeam?.id || "";
-        socket.emit(SOCKET_EVENTS.PLAYER_QUIZ_ANSWER, {
-          roundId,
-          teamId,
-          questionId,
-          selectedOption,
-          timeTakenMs,
-        });
-      }
-    },
-    [socket, isConnected, gameState]
-  );
-
-  const value = React.useMemo(
-    () => ({
-      socket,
-      isConnected,
-      gameState,
-      joinRoom,
-      submitDecision,
-      submitQuizAnswer,
-    }),
-    [socket, isConnected, gameState, joinRoom, submitDecision, submitQuizAnswer]
-  );
-
-  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>;
+  return <>{children}</>;
 }
