@@ -12,6 +12,7 @@ import { logger } from '../utils/logger.js';
 import { maybeGenerateEvent, applyEvent } from './event.engine.js';
 import { emitToRoom } from '../socket/index.js';
 import { check as detectMonopoly } from './monopoly-detector.js';
+import { calculateRoundScore, calculateLeaderboard, calculateFinalRanking } from './scoring.engine.js';
 
 export interface GameEngineCallbacks {
   onRoundStart: (roundNumber: number, decisions: Decision[], duration: number) => void;
@@ -30,6 +31,7 @@ export interface InMemoryTeamState {
   reputation: number;
   monopolyRisk: number;
   status: string;
+  totalScore?: number;
 }
 
 export class ServerGameState {
@@ -41,6 +43,7 @@ export class ServerGameState {
   public submittedDecisions: Map<string, string>; // teamId -> decisionType
   public currentEvent: GameEvent | null; // Reserved for future event engine integration
   public seed: string;
+  public leaderboard: LeaderboardEntry[]; // Standings leaderboard tracking
 
   private roundTimer: NodeJS.Timeout | null = null;
   private secondsLeft = 0;
@@ -63,13 +66,17 @@ export class ServerGameState {
     this.currentEvent = null;
     this.callbacks = callbacks;
     this.db = db || null;
+    this.leaderboard = [];
   }
 
   /**
    * Registers a team into the in-memory engine state manager.
    */
-  public registerTeam(team: InMemoryTeamState): void {
-    this.teams.set(team.id, { ...team });
+  public registerTeam(team: Omit<InMemoryTeamState, 'totalScore'> & { totalScore?: number }): void {
+    this.teams.set(team.id, {
+      ...team,
+      totalScore: team.totalScore ?? 0,
+    });
   }
 
   /**
@@ -261,6 +268,26 @@ export class ServerGameState {
       }
     }
 
+    // 1.3 Run Scoring Engine
+    for (const team of activeTeams) {
+      const choice = this.submittedDecisions.get(team.id) || null;
+      const breakdown = calculateRoundScore(team, choice, {
+        roundNumber: this.currentRound,
+        activeEvent: this.currentEvent ? { type: this.currentEvent.type } : null,
+      });
+
+      // Update in-memory totalScore
+      team.totalScore = (team.totalScore ?? 0) + breakdown.totalRoundScore;
+
+      logger.debug(
+        { gameId: this.gameId, teamId: team.id, roundScore: breakdown.totalRoundScore, newTotalScore: team.totalScore },
+        'Round score calculated and updated for team.'
+      );
+    }
+
+    // 1.4 Calculate Leaderboard ranking
+    this.leaderboard = calculateLeaderboard(activeTeams, this.leaderboard);
+
     // 2. Persist to DB if database is connected
     try {
       const activeDb = this.db || getDatabase();
@@ -361,17 +388,19 @@ export class ServerGameState {
 
           const teamRepo = new TeamRepository(activeDb);
           const teams = teamRepo.findByGameId(this.gameId);
-          const sortedTeams = [...teams].sort((a, b) => b.totalScore - a.totalScore);
-          const finalLeaderboard: LeaderboardEntry[] = sortedTeams.map((t, idx) => ({
-            rank: idx + 1,
-            teamId: t.id,
-            teamName: t.name,
+          const activeDbTeams: InMemoryTeamState[] = teams.map((t) => ({
+            id: t.id,
+            name: t.name,
             teamNumber: t.teamNumber,
-            totalScore: t.totalScore,
+            money: t.money,
             marketShare: t.marketShare,
+            technology: t.technology,
+            reputation: t.reputation,
             monopolyRisk: t.monopolyRisk,
-            rankChange: 'same',
+            status: t.status,
+            totalScore: t.totalScore,
           }));
+          const finalLeaderboard = calculateFinalRanking(activeDbTeams);
           this.callbacks.onGameOver(finalLeaderboard);
         } else {
           const roundRepo = new RoundRepository(activeDb);
@@ -497,6 +526,7 @@ export class ServerGameState {
         technology: team.technology,
         reputation: team.reputation,
         monopolyRisk: team.monopolyRisk,
+        totalScore: team.totalScore ?? 0,
       });
 
       // 2. Insert fallback log record if not submitted (ensures complete historical charts)
