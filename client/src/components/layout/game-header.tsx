@@ -2,30 +2,22 @@
 
 import * as React from "react";
 import { useSocket } from "@/hooks/use-socket";
-import { useGameState } from "@/hooks/use-game-state";
+import { useGameStore } from "@/stores/game.store";
 import { Badge } from "@/components/ui/badge";
 import { vi } from "@/i18n/vi";
-
-/**
- * MM:SS time formatter helper.
- */
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-}
+import { formatTime } from "@/lib/format";
 
 export function GameHeader() {
   const { isConnected } = useSocket();
-  const gameState = useGameState();
 
-  const roomCode = gameState?.roomCode || "";
-  const phase = gameState?.phase || "lobby";
-  const currentRound = gameState?.currentRound || 0;
-  const totalRounds = gameState?.totalRounds || 8;
-  const secondsLeft = gameState?.roundTimeLeft ?? 0;
-  const role = gameState?.role || "player";
-  const myTeam = gameState?.myTeam;
+  // Optimized selector subscriptions
+  const roomCode = useGameStore((s) => s.roomCode);
+  const phase = useGameStore((s) => s.phase);
+  const currentRound = useGameStore((s) => s.currentRound);
+  const totalRounds = useGameStore((s) => s.totalRounds);
+  const secondsLeft = useGameStore((s) => s.roundTimeLeft);
+  const role = useGameStore((s) => s.role);
+  const myTeam = useGameStore((s) => s.myTeam);
 
   // Translate role to Vietnamese
   const roleLabel = React.useMemo(() => {
@@ -45,75 +37,73 @@ export function GameHeader() {
       return {
         label: vi.layout.header.connectionConnected,
         color: "bg-success text-success-foreground",
-        dotColor: "bg-emerald-500",
+        dotColor: "bg-success",
       };
     }
     return {
       label: vi.layout.header.connectionDisconnected,
       color: "bg-destructive text-destructive-foreground",
-      dotColor: "bg-rose-500",
+      dotColor: "bg-destructive",
     };
   }, [isConnected]);
 
   return (
-    <header className="h-[4.5rem] w-full border-b border-slate-800 bg-slate-950 px-6 flex items-center justify-between z-10">
+    <header className="h-[4.5rem] w-full border-b border-border bg-background px-6 flex items-center justify-between z-10">
       {/* Brand Logo & Connection Badge */}
       <div className="flex items-center gap-4">
-        <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-amber-400 to-amber-600 bg-clip-text text-transparent">
+        <h1 className="text-xl font-bold tracking-tight bg-gradient-to-r from-accent to-accent/80 bg-clip-text text-transparent">
           {vi.meta.title.split(" — ")[0]}
         </h1>
         <div className="flex items-center gap-2">
-          <span className={`flex h-2.5 w-2.5 relative`}>
+          <span className="flex h-2.5 w-2.5 relative">
             {isConnected && (
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
             )}
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${connectionState.dotColor}`} />
           </span>
-          <span className="text-xs text-slate-400 font-medium">
+          <span className="text-xs text-muted-foreground font-medium">
             {connectionState.label}
           </span>
         </div>
       </div>
 
       {/* Game context (Round, Phase, Countdown) */}
-      {gameState && (
-        <div className="flex items-center gap-6">
-          {/* Round counter */}
-          {phase !== "lobby" && phase !== "finished" && (
-            <div className="text-sm font-semibold text-slate-300">
-              {vi.game.round.replace("{round}", `${currentRound}/${totalRounds}`)}
-            </div>
-          )}
+      <div className="flex items-center gap-6">
+        {/* Round counter */}
+        {phase !== "lobby" && phase !== "finished" && (
+          <div className="text-sm font-semibold text-foreground/90">
+            {vi.game.round.replace("{round}", `${currentRound}/${totalRounds}`)}
+          </div>
+        )}
 
-          {/* Phase indicator */}
-          <Badge variant={phase === "processing" ? "warning" : "default"}>
-            {vi.game.phase[phase]}
-          </Badge>
+        {/* Phase indicator */}
+        <Badge variant={phase === "processing" ? "secondary" : "default"}>
+          {vi.game.phase[phase]}
+        </Badge>
 
-          {/* Countdown timer */}
-          {phase !== "lobby" && phase !== "finished" && secondsLeft > 0 && (
-            <div className={`font-mono text-lg font-bold tracking-wider px-3 py-1 rounded bg-slate-900 border ${secondsLeft <= 10 ? 'text-red-500 border-red-500/30 animate-pulse' : 'text-amber-400 border-slate-800'}`}>
-              {formatTime(secondsLeft)}
-            </div>
-          )}
-        </div>
-      )}
+        {/* Countdown timer */}
+        {phase !== "lobby" && phase !== "finished" && secondsLeft > 0 && (
+          <div className={`font-mono text-lg font-bold tracking-wider px-3 py-1 rounded bg-card border ${secondsLeft <= 10 ? 'text-destructive border-destructive/30 animate-pulse' : 'text-accent border-border'}`}>
+            {formatTime(secondsLeft)}
+          </div>
+        )}
+      </div>
 
       {/* Room code and user context */}
       <div className="flex items-center gap-4">
         {roomCode && (
-          <div className="text-sm font-semibold text-amber-500 bg-amber-500/10 px-3 py-1 rounded border border-amber-500/20">
+          <div className="text-sm font-semibold text-accent bg-accent/10 px-3 py-1 rounded border border-accent/20">
             {vi.layout.header.gameCode.replace("{code}", roomCode)}
           </div>
         )}
         
         {/* Role & Team display */}
         <div className="text-right hidden sm:block">
-          <div className="text-xs text-slate-500 font-medium tracking-wide uppercase">
+          <div className="text-[10px] text-muted-foreground font-bold tracking-wide uppercase">
             {roleLabel}
           </div>
           {myTeam && (
-            <div className="text-sm font-bold text-slate-300">
+            <div className="text-sm font-bold text-foreground/80">
               {myTeam.name}
             </div>
           )}

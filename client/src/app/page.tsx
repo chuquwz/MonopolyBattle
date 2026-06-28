@@ -6,24 +6,24 @@ import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col justify-between bg-slate-950 text-slate-100 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col justify-between bg-background text-foreground relative overflow-hidden">
       {/* Background glow effects */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden opacity-30">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-blue-600 blur-[130px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-amber-500 blur-[120px] animate-pulse" style={{ animationDuration: '6s' }} />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary blur-[130px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-accent blur-[120px] animate-pulse" style={{ animationDuration: '6s' }} />
       </div>
 
       <div className="flex-1 flex flex-col items-center justify-center p-6 z-10">
         <div className="max-w-3xl w-full text-center space-y-12">
           {/* Brand/Hero section */}
           <div className="space-y-4">
-            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-amber-400 via-amber-200 to-amber-600 bg-clip-text text-transparent drop-shadow-sm select-none">
+            <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight bg-gradient-to-r from-accent via-amber-200 to-accent bg-clip-text text-transparent drop-shadow-sm select-none">
               {vi.pages.landing.title}
             </h1>
-            <p className="text-xl md:text-2xl font-bold text-blue-400 tracking-wide">
+            <p className="text-xl md:text-2xl font-bold text-muted-foreground tracking-wide">
               {vi.pages.landing.subtitle}
             </p>
-            <p className="max-w-xl mx-auto text-slate-400 text-sm md:text-base leading-relaxed">
+            <p className="max-w-xl mx-auto text-muted-foreground text-sm md:text-base leading-relaxed">
               {vi.pages.landing.description}
             </p>
           </div>
@@ -31,9 +31,9 @@ export default function Home() {
           {/* Role selection cards */}
           <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
             {/* Host CTA */}
-            <Card className="border-slate-800 bg-slate-900/60 backdrop-blur hover:border-amber-500/40 transition-all duration-300 group shadow-lg flex flex-col justify-between">
+            <Card className="border-border bg-card/60 backdrop-blur hover:border-accent/40 transition-all duration-300 group shadow-lg flex flex-col justify-between">
               <CardHeader className="space-y-2 p-6 pb-4">
-                <div className="mx-auto w-12 h-12 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center border border-amber-500/20 group-hover:scale-110 transition-transform">
+                <div className="mx-auto w-12 h-12 rounded-lg bg-accent/10 text-accent flex items-center justify-center border border-accent/20 group-hover:scale-110 transition-transform">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -49,15 +49,15 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <CardTitle className="text-xl font-bold group-hover:text-amber-400 transition-colors">
+                <CardTitle className="text-xl font-bold group-hover:text-accent transition-colors">
                   {vi.layout.header.roleHost}
                 </CardTitle>
-                <CardDescription className="text-slate-400 text-xs leading-relaxed">
-                  Thiết lập game, tùy chỉnh số vòng đấu và trực tiếp điều hành phiên mô phỏng kinh tế.
+                <CardDescription className="text-muted-foreground text-xs leading-relaxed">
+                  {vi.pages.landing.hostDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 pt-0">
-                <Button asChild variant="outline" className="w-full border-slate-700 hover:border-amber-500 hover:bg-amber-500 hover:text-slate-950 font-bold">
+                <Button asChild variant="outline" className="w-full border-border hover:border-accent hover:bg-accent hover:text-accent-foreground font-bold">
                   <Link href="/host">
                     {vi.pages.landing.hostCta}
                   </Link>
@@ -66,9 +66,9 @@ export default function Home() {
             </Card>
 
             {/* Player CTA */}
-            <Card className="border-slate-800 bg-slate-900/60 backdrop-blur hover:border-blue-500/40 transition-all duration-300 group shadow-lg flex flex-col justify-between">
+            <Card className="border-border bg-card/60 backdrop-blur hover:border-primary/40 transition-all duration-300 group shadow-lg flex flex-col justify-between">
               <CardHeader className="space-y-2 p-6 pb-4">
-                <div className="mx-auto w-12 h-12 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20 group-hover:scale-110 transition-transform">
+                <div className="mx-auto w-12 h-12 rounded-lg bg-primary/20 text-muted-foreground flex items-center justify-center border border-primary/30 group-hover:scale-110 transition-transform">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
@@ -84,11 +84,11 @@ export default function Home() {
                     />
                   </svg>
                 </div>
-                <CardTitle className="text-xl font-bold group-hover:text-blue-400 transition-colors">
+                <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">
                   {vi.layout.header.rolePlayer}
                 </CardTitle>
-                <CardDescription className="text-slate-400 text-xs leading-relaxed">
-                  Nhập mã phòng, thành lập đội chơi, ra quyết định đầu tư kinh doanh để giành chiến thắng.
+                <CardDescription className="text-muted-foreground text-xs leading-relaxed">
+                  {vi.pages.landing.playerDesc}
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 pt-0">
@@ -104,7 +104,7 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="h-14 border-t border-slate-800 bg-slate-950 flex items-center justify-center text-[10px] text-slate-500 font-medium px-6 text-center select-none z-10">
+      <footer className="h-14 border-t border-border bg-background flex items-center justify-center text-[10px] text-muted-foreground font-medium px-6 text-center select-none z-10">
         {vi.layout.footer.copyright}
       </footer>
     </div>

@@ -74,7 +74,9 @@ export const vi = {
       description: "Trò chơi mô phỏng tương tác thực tế giúp người học thấu hiểu các quy luật kinh tế chính trị độc quyền và cơ chế điều tiết của Nhà nước trong nền kinh tế thị trường.",
       roleSelection: "Chọn vai trò tham gia",
       hostCta: "Tạo phòng chơi mới (Quản trò)",
+      hostDesc: "Thiết lập game, tùy chỉnh số vòng đấu và trực tiếp điều hành phiên mô phỏng kinh tế.",
       playerCta: "Tham gia phòng chơi (Đội chơi)",
+      playerDesc: "Nhập mã phòng, thành lập đội chơi, ra quyết định đầu tư kinh doanh để giành chiến thắng.",
     },
     host: {
       loginTitle: "Đăng nhập Quản trò",

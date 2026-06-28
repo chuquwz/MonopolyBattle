@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-interface UseCountdownResult {
+export interface UseCountdownResult {
   seconds: number;
   isActive: boolean;
   start: () => void;
@@ -11,6 +11,7 @@ interface UseCountdownResult {
 
 /**
  * Custom hook to manage a client-side countdown timer with controls.
+ * Uses callback refs to prevent interval restarts when parent render functions redefine callbacks.
  */
 export function useCountdown(
   initialSeconds = 0,
@@ -20,6 +21,15 @@ export function useCountdown(
   const [seconds, setSeconds] = useState(initialSeconds);
   const [isActive, setIsActive] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const onTickRef = useRef(onTick);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep references fresh
+  useEffect(() => {
+    onTickRef.current = onTick;
+    onCompleteRef.current = onComplete;
+  }, [onTick, onComplete]);
 
   const start = useCallback(() => {
     setIsActive(true);
@@ -54,11 +64,11 @@ export function useCountdown(
             clearInterval(timerRef.current);
             timerRef.current = null;
           }
-          onComplete?.();
+          onCompleteRef.current?.();
           return 0;
         }
         const next = prev - 1;
-        onTick?.(next);
+        onTickRef.current?.(next);
         return next;
       });
     }, 1000);
@@ -68,7 +78,7 @@ export function useCountdown(
         clearInterval(timerRef.current);
       }
     };
-  }, [isActive, onComplete, onTick]);
+  }, [isActive]);
 
   return {
     seconds,

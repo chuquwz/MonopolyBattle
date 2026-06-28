@@ -3,7 +3,7 @@
 import * as React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GameHeader } from "./game-header";
-import { useGameState } from "@/hooks/use-game-state";
+import { useGameStore } from "@/stores/game.store";
 import { Card, CardContent } from "@/components/ui/card";
 import { vi } from "@/i18n/vi";
 
@@ -12,16 +12,16 @@ export interface GameLayoutProps {
 }
 
 export function GameLayout({ children }: GameLayoutProps) {
-  const gameState = useGameState();
-  const currentEvent = gameState?.currentEvent;
-  const narration = gameState?.narration;
+  // Subscribe to specific parts of game store to prevent layout re-renders on timer ticks
+  const currentEvent = useGameStore((s) => s.currentEvent);
+  const narration = useGameStore((s) => s.narration);
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen flex flex-col bg-background text-foreground font-sans selection:bg-accent selection:text-slate-950">
       {/* Dynamic Background Glow */}
       <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden opacity-20">
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-blue-600 blur-[120px]" />
-        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full bg-amber-500 blur-[100px]" />
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] rounded-full bg-primary blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] rounded-full bg-accent/40 blur-[100px]" />
       </div>
 
       {/* Top Navigation Header */}
@@ -46,10 +46,10 @@ export function GameLayout({ children }: GameLayoutProps) {
               exit={{ opacity: 0, y: 50 }}
               className="fixed bottom-6 right-6 z-40 max-w-sm w-full"
             >
-              <Card className="border-amber-500/30 bg-slate-900/90 backdrop-blur shadow-2xl overflow-hidden">
-                <div className="h-1.5 w-full bg-gradient-to-r from-amber-400 to-amber-600" />
+              <Card className="border-accent/30 bg-card/90 backdrop-blur shadow-2xl overflow-hidden">
+                <div className="h-1.5 w-full bg-gradient-to-r from-accent/80 to-accent" />
                 <CardContent className="p-5 flex flex-col gap-2">
-                  <div className="flex items-center gap-2 text-amber-500">
+                  <div className="flex items-center gap-2 text-accent">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -68,10 +68,10 @@ export function GameLayout({ children }: GameLayoutProps) {
                       {vi.game.phase.event}
                     </span>
                   </div>
-                  <h3 className="text-base font-bold text-slate-100">
+                  <h3 className="text-base font-bold text-foreground">
                     {currentEvent.titleVi}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     {currentEvent.descriptionVi}
                   </p>
                 </CardContent>
@@ -87,9 +87,9 @@ export function GameLayout({ children }: GameLayoutProps) {
               exit={{ opacity: 0, scale: 0.95, y: -20 }}
               className="fixed top-24 left-1/2 -translate-x-1/2 z-40 max-w-xl w-full px-4"
             >
-              <Card className="border-blue-500/20 bg-slate-900/90 backdrop-blur shadow-2xl border-l-4 border-l-blue-500">
+              <Card className="border-accent/20 bg-card/90 backdrop-blur shadow-2xl border-l-4 border-l-accent">
                 <CardContent className="p-4 flex gap-3 items-start">
-                  <div className="p-2 rounded bg-blue-500/10 text-blue-400 mt-0.5">
+                  <div className="p-2 rounded bg-accent/10 text-accent mt-0.5">
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
                       fill="none"
@@ -106,10 +106,10 @@ export function GameLayout({ children }: GameLayoutProps) {
                     </svg>
                   </div>
                   <div className="flex-1 flex flex-col gap-1">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-widest">
+                    <div className="text-[10px] font-bold text-accent uppercase tracking-widest">
                       {vi.game.phase.narration}
                     </div>
-                    <p className="text-xs text-slate-300 font-medium leading-relaxed italic">
+                    <p className="text-xs text-foreground/90 font-medium leading-relaxed italic">
                       &ldquo;{narration.text}&rdquo;
                     </p>
                   </div>
@@ -121,7 +121,7 @@ export function GameLayout({ children }: GameLayoutProps) {
       </div>
 
       {/* Styled Footer */}
-      <footer className="h-12 border-t border-slate-800 bg-slate-950 flex items-center justify-center text-[10px] text-slate-500 font-medium px-6 text-center select-none">
+      <footer className="h-12 border-t border-border bg-background flex items-center justify-center text-[10px] text-muted-foreground font-medium px-6 text-center select-none">
         {vi.layout.footer.copyright}
       </footer>
     </div>

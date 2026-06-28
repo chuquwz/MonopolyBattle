@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { motion } from "framer-motion";
-import { vi } from "@/i18n/vi.js";
+import { vi } from "@/i18n/vi";
 
 export interface LoadingScreenProps {
   messageType?: "connecting" | "fetching" | "loading";
@@ -16,11 +16,11 @@ export function LoadingScreen({
   const message = customMessage || vi.ui.loading[messageType];
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-slate-950 text-slate-100 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background text-foreground overflow-hidden">
       {/* Background glow animations */}
       <div className="absolute inset-0 -z-10 flex items-center justify-center opacity-30">
         <motion.div
-          className="w-[400px] h-[400px] rounded-full bg-blue-500 blur-[80px]"
+          className="w-[400px] h-[400px] rounded-full bg-primary blur-[80px]"
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.5, 0.3],
@@ -32,7 +32,7 @@ export function LoadingScreen({
           }}
         />
         <motion.div
-          className="absolute w-[300px] h-[300px] rounded-full bg-amber-500 blur-[80px]"
+          className="absolute w-[300px] h-[300px] rounded-full bg-accent blur-[80px]"
           animate={{
             scale: [1.2, 1, 1.2],
             opacity: [0.2, 0.4, 0.2],
@@ -50,7 +50,7 @@ export function LoadingScreen({
         {Array.from({ length: 15 }).map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1.5 h-1.5 bg-blue-400 rounded-full opacity-65"
+            className="absolute w-1.5 h-1.5 bg-primary rounded-full opacity-65"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -73,7 +73,7 @@ export function LoadingScreen({
       <div className="relative flex items-center justify-center mb-6">
         {/* Outer glowing ring */}
         <motion.div
-          className="w-20 h-20 rounded-full border-4 border-slate-800 border-t-amber-500"
+          className="w-20 h-20 rounded-full border-4 border-border border-t-accent"
           animate={{ rotate: 360 }}
           transition={{
             duration: 1.5,
@@ -83,7 +83,7 @@ export function LoadingScreen({
         />
         {/* Inner reverse-rotating ring */}
         <motion.div
-          className="absolute w-14 h-14 rounded-full border-4 border-slate-800 border-b-blue-500"
+          className="absolute w-14 h-14 rounded-full border-4 border-border border-b-primary"
           animate={{ rotate: -360 }}
           transition={{
             duration: 2.0,
