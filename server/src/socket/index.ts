@@ -9,6 +9,8 @@ import type {
 } from '@monopoly/shared';
 import { config } from '../config/index.js';
 import { logger } from '../utils/logger.js';
+import { handleConnection } from './connection.handler.js';
+import { registerHostHandlers } from './host-event.handler.js';
 
 /**
  * Interface representing all events emitted by the server to the client.
@@ -118,42 +120,13 @@ io.use((socket: MonopolySocket, next: (err?: Error) => void) => {
   }
 });
 
-// Register connections and automatically configure rooms
+// Register connections and configure handlers
 io.on('connection', (socket: MonopolySocket) => {
-  const { gameId, teamId, role } = socket.data;
+  // Delegate connection lifecycle, database updates, and player listeners
+  handleConnection(socket);
 
-  // 1. Join room:gameId automatically
-  if (gameId) {
-    const gameRoom = `room:${gameId}`;
-    socket.join(gameRoom);
-    logger.info({ socketId: socket.id, room: gameRoom, role }, 'Socket automatically joined game room');
-  }
-
-  // 2. Join team:teamId automatically (only applicable to team players)
-  if (teamId) {
-    const teamRoom = `team:${teamId}`;
-    socket.join(teamRoom);
-    logger.info({ socketId: socket.id, room: teamRoom, role }, 'Socket automatically joined team room');
-  }
-
-  // 3. Join host:gameId automatically if the client connects as host
-  if (role === 'host' && gameId) {
-    const hostRoom = `host:${gameId}`;
-    socket.join(hostRoom);
-    logger.info({ socketId: socket.id, room: hostRoom }, 'Host socket automatically joined host control room');
-  }
-
-  logger.info(
-    { socketId: socket.id, role, gameId, teamId },
-    'New client connection fully established and registered to rooms'
-  );
-
-  socket.on('disconnect', (reason) => {
-    logger.info(
-      { socketId: socket.id, role, gameId, teamId, reason },
-      'Client disconnected from Socket.IO server'
-    );
-  });
+  // Register host command listeners
+  registerHostHandlers(socket);
 });
 
 /**
@@ -164,7 +137,8 @@ export function emitToRoom<Ev extends keyof ServerToClientEvents>(
   event: Ev,
   payload: Parameters<ServerToClientEvents[Ev]>[0]
 ): void {
-  const emitter = io.to(room).emit as unknown as (
+  const operator = io.to(room);
+  const emitter = operator.emit.bind(operator) as unknown as (
     ev: Ev,
     arg: Parameters<ServerToClientEvents[Ev]>[0]
   ) => boolean;
@@ -179,7 +153,8 @@ export function emitToSocket<Ev extends keyof ServerToClientEvents>(
   event: Ev,
   payload: Parameters<ServerToClientEvents[Ev]>[0]
 ): void {
-  const emitter = io.to(socketId).emit as unknown as (
+  const operator = io.to(socketId);
+  const emitter = operator.emit.bind(operator) as unknown as (
     ev: Ev,
     arg: Parameters<ServerToClientEvents[Ev]>[0]
   ) => boolean;
