@@ -34,8 +34,8 @@ gantt
     Narrator template system     :d3d, after d3c, 3h
 
     section Day 4 — Frontend Core
-    Next.js setup + design sys   :d4a, 4, 2h
-    Landing + Join + Host pages  :d4b, after d4a, 3h
+    Next.js setup + design sys   :done, d4a, 4, 2h
+    Landing + Join + Host pages  :done, d4b, after d4a, 3h
     Game page + Zustand stores   :d4c, after d4b, 3h
 
     section Day 5 — Game UI
@@ -354,12 +354,12 @@ gantt
 
 #### Task 13 — Design System + Global Styles `2h` `Important`
 
-- [ ] Configure tailwind.config.ts: deep navy primary, electric gold accent, crimson danger, emerald success, dark slate background
-- [ ] Set up Google Fonts (Inter) in app/layout.tsx
-- [ ] Create app/globals.css: CSS custom properties, dark mode base, scrollbar styling
-- [ ] Configure shadcn/ui theme colors to match palette
-- [ ] Create components/layout/game-layout.tsx — shared page wrapper
-- [ ] Create components/layout/game-header.tsx — logo + round indicator + timer slot
+- [x] Configure tailwind.config.ts: deep navy primary, electric gold accent, crimson danger, emerald success, dark slate background
+- [x] Set up Google Fonts (Inter) in app/layout.tsx
+- [x] Create app/globals.css: CSS custom properties, dark mode base, scrollbar styling
+- [x] Configure shadcn/ui theme colors to match palette
+- [x] Create components/layout/game-layout.tsx — shared page wrapper
+- [x] Create components/layout/game-header.tsx — logo + round indicator + timer slot
 
 **Deliverable:** Consistent, polished visual design system ready to use
 
@@ -367,13 +367,13 @@ gantt
 
 #### Task 14 — Landing + Join + Host Pages `3h` `Critical`
 
-- [ ] Create app/page.tsx — landing with two CTAs: "Vào game" + "Tạo game"
-- [ ] Create app/play/join/page.tsx — room code + team name + player name form → POST /api/auth/join → save token → redirect
-- [ ] Create app/host/page.tsx — host PIN + game config (rounds, duration) → POST /api/auth/host → POST /api/games → redirect
-- [ ] Create app/play/lobby/page.tsx — teams list + ready status + "Ready" button
-- [ ] Create app/host/lobby/page.tsx — room code display + team list + "Start Game" button
-- [ ] Create lib/api.ts — typed fetch wrapper for REST calls
-- [ ] Create lib/socket.ts — Socket.IO client singleton
+- [x] Create app/page.tsx — landing with two CTAs: "Vào game" + "Tạo game"
+- [x] Create app/play/join/page.tsx — room code + team name + player name form → POST /api/auth/join → save token → redirect
+- [x] Create app/host/page.tsx — host PIN + game config (rounds, duration) → POST /api/auth/host → POST /api/games → redirect
+- [x] Create app/play/lobby/page.tsx — teams list + ready status + "Ready" button
+- [x] Create app/host/lobby/page.tsx — room code display + team list + "Start Game" button
+- [x] Create lib/api.ts — typed fetch wrapper for REST calls
+- [x] Create lib/socket.ts — Socket.IO client singleton
 
 **Deliverable:** Teams join; host creates game; lobby visible to all
 
