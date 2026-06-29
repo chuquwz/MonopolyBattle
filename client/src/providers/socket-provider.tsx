@@ -86,12 +86,13 @@ export function SocketProvider({ children, url }: SocketProviderProps) {
       useGameStore.getState().updateMyTeam(payload);
     };
 
-    const onNarratorMessage = (payload: { text: string; type?: "info" | "warning" | "education" }) => {
+    const onNarratorMessage = (payload: { text: string; type?: "info" | "warning" | "education"; relatedConcept?: string }) => {
       useGameStore.setState({
         narration: {
           text: payload.text,
           isVisible: true,
           type: payload.type || "info",
+          ...(payload.relatedConcept ? { relatedConcept: payload.relatedConcept } : {}),
         },
       });
       useUiStore.setState({ showNarrator: true });

@@ -40,8 +40,8 @@ gantt
 
     section Day 5 — Game UI
     Decision panel + Timer       :done, d5a, 5, 2h
-    Event overlay + Narrator box :d5b, after d5a, 2h
-    Market chart + Team stats    :d5c, after d5b, 2h
+    Event overlay + Narrator box :done, d5b, after d5a, 2h
+    Market chart + Team stats    :done, d5c, after d5b, 2h
     Quiz UI                      :d5d, after d5c, 2h
 
     section Day 6 — Integration
@@ -418,10 +418,10 @@ gantt
 
 #### Task 17 — Event Overlay + Narrator Box `2h` `Critical`
 
-- [ ] Create components/game/event-overlay.tsx — full-screen blur backdrop, event card with icon/title/description/effect summary, auto-dismiss after 5s
-- [ ] Create components/game/narrator-box.tsx — slide-up panel, avatar icon, typewriter text animation, color-coded border (info/warning/education), related concept badge, auto-dismiss after 6s
-- [ ] Wire both to ui.store.ts visibility flags
-- [ ] Test overlay + narrator appear and disappear correctly
+- [x] Create components/game/event-overlay.tsx — full-screen blur backdrop, event card with icon/title/description/effect summary, auto-dismiss after 5s
+- [x] Create components/game/narrator-box.tsx — slide-up panel, avatar icon, typewriter text animation, color-coded border (info/warning/education), related concept badge, auto-dismiss after 6s
+- [x] Wire both to ui.store.ts visibility flags
+- [x] Test overlay + narrator appear and disappear correctly
 
 **Deliverable:** Event overlay and narrator box display and dismiss correctly
 
@@ -429,10 +429,10 @@ gantt
 
 #### Task 18 — Market Chart + Team Stats `2h` `Important`
 
-- [ ] Create components/game/team-stats.tsx — 5 stat bars (Money, Market Share, Tech, Reputation, Monopoly Risk), animated number transitions, color thresholds
-- [ ] Create components/game/market-share-chart.tsx — horizontal stacked bar chart with CSS, color-coded per team, animates on update, team labels + percentages
-- [ ] Create components/game/leaderboard.tsx — ranked list, rank change arrows, highlighted "your team" row
-- [ ] Integrate into game page sidebar
+- [x] Create components/game/team-stats.tsx — 5 stat bars (Money, Market Share, Tech, Reputation, Monopoly Risk), animated number transitions, color thresholds
+- [x] Create components/game/market-share-chart.tsx — horizontal stacked bar chart with CSS, color-coded per team, animates on update, team labels + percentages
+- [x] Create components/game/leaderboard.tsx — ranked list, rank change arrows, highlighted "your team" row
+- [x] Integrate into game page sidebar
 
 **Deliverable:** Stats and market chart visible and animated during rounds
 

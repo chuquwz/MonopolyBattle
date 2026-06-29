@@ -12,10 +12,15 @@ import { useUiStore } from "@/stores/ui.store";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { GameLayout } from "@/components/layout/game-layout";
 import { SOCKET_EVENTS } from "@monopoly/shared";
 import { DecisionPanel } from "@/components/game/decision-panel";
+import { EventOverlay } from "@/components/game/event-overlay";
+import { NarratorBox } from "@/components/game/narrator-box";
+import { AnimatePresence } from "framer-motion";
+import { TeamStats } from "@/components/game/team-stats";
+import { MarketShareChart } from "@/components/game/market-share-chart";
+import { Leaderboard } from "@/components/game/leaderboard";
 
 function PlayerGameContent() {
   const router = useRouter();
@@ -127,9 +132,6 @@ function PlayerGameContent() {
       </div>
     );
   }
-
-  const myTeamFromAll = allTeams.find((t) => t.id === myTeam?.id);
-  const myTeamNumber = myTeamFromAll?.teamNumber || 0;
 
   // If game is in finished state, show the scoreboard overlay
   if (phase === "finished") {
@@ -315,90 +317,25 @@ function PlayerGameContent() {
 
         {/* Right area: Team metrics & competitors stats lists */}
         <div className="space-y-6">
-          {/* Own Team HUD Card */}
-          <Card className="border-border bg-card/60 backdrop-blur shadow-xl">
-            <CardHeader className="border-b border-border pb-4">
-              <CardDescription className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none">
-                Đội chơi
-              </CardDescription>
-              <CardTitle className="text-2xl font-black text-foreground flex items-center gap-2">
-                <span className="text-accent font-mono">#{myTeamNumber}</span>
-                {myTeam?.name || "Đang tải..."}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6 space-y-4">
-              {/* Money */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground font-bold uppercase">{vi.stats.money}</span>
-                <span className="font-extrabold text-foreground/90">
-                  {(myTeam?.money ?? 0).toLocaleString()} {vi.stats.moneyUnit}
-                </span>
-              </div>
+          {/* Team Stats Panel */}
+          <TeamStats />
 
-              {/* Market Share */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-bold leading-none">
-                  <span className="text-muted-foreground uppercase">{vi.stats.marketShare}</span>
-                  <span className="text-foreground/95">{myTeam?.marketShare || 0}%</span>
-                </div>
-                <Progress value={myTeam?.marketShare || 0} className="h-1.5" />
-              </div>
+          {/* Market Share Visualization Chart */}
+          <MarketShareChart />
 
-              {/* Technology */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground font-bold uppercase">{vi.stats.technology}</span>
-                <span className="font-extrabold text-foreground/90">{myTeam?.technology || 0}</span>
-              </div>
-
-              {/* Reputation */}
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-muted-foreground font-bold uppercase">{vi.stats.reputation}</span>
-                <span className="font-extrabold text-foreground/90">{myTeam?.reputation || 0}</span>
-              </div>
-
-              {/* Monopoly Risk */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs font-bold leading-none">
-                  <span className="text-muted-foreground uppercase">{vi.stats.monopolyRisk}</span>
-                  <span className="text-monopoly-risk font-bold">{myTeam?.monopolyRisk || 0}%</span>
-                </div>
-                <Progress value={myTeam?.monopolyRisk || 0} className="h-1.5 bg-monopoly-risk/20" indicatorColor="bg-monopoly-risk" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Competitors List */}
-          <Card className="border-border bg-card/40 backdrop-blur shadow-xl">
-            <CardHeader className="border-b border-border pb-4">
-              <CardTitle className="text-sm font-bold">Đối thủ cạnh tranh</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4 max-h-[300px] overflow-y-auto">
-              {allTeams.filter((t) => t.id !== myTeam?.id).length === 0 ? (
-                <p className="text-[10px] text-muted-foreground text-center py-6">Không có đối thủ cạnh tranh nào trong phòng.</p>
-              ) : (
-                <div className="space-y-3">
-                  {allTeams
-                    .filter((t) => t.id !== myTeam?.id)
-                    .map((team) => (
-                      <div
-                        key={team.id}
-                        className="p-3 rounded border border-border bg-background/40 flex items-center justify-between text-xs"
-                      >
-                        <div>
-                          <h5 className="font-bold text-foreground/80">#{team.teamNumber} {team.name}</h5>
-                          <span className="text-[9px] text-muted-foreground block">Thị phần: {team.marketShare}%</span>
-                        </div>
-                        <Badge variant="outline" className="text-[9px] border-border text-muted-foreground">
-                          {team.status === "ready" ? "Sẵn sàng" : "Chờ..."}
-                        </Badge>
-                      </div>
-                    ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Current Rankings Leaderboard */}
+          <Leaderboard />
         </div>
       </div>
+
+      {/* Real-time Event Overlay and AI Narrator Box */}
+      <AnimatePresence mode="wait">
+        <EventOverlay />
+      </AnimatePresence>
+
+      <AnimatePresence>
+        <NarratorBox />
+      </AnimatePresence>
     </div>
   );
 }

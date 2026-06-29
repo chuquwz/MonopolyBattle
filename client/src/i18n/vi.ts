@@ -177,4 +177,25 @@ export const vi = {
       seconds: "{seconds} giây",
     },
   },
+  eventOverlay: {
+    title: "SỰ KIỆN PHÁT SINH",
+    effectsTitle: "Tác động dự kiến",
+    dismissCta: "Đóng",
+  },
+  narratorBox: {
+    title: "AI Narrator",
+    badgeLabel: "Kiến thức kinh tế",
+  },
+  concepts: {
+    CAPITAL_CONCENTRATION: "Tập trung tư bản",
+    CAPITAL_CENTRALIZATION: "Tích tụ tư bản",
+    STATE_MONOPOLY_CAPITALISM: "CNTB độc quyền nhà nước",
+    EXPORT_OF_CAPITAL: "Xuất khẩu tư bản",
+    CAPITALIST_CONTRADICTIONS: "Mâu thuẫn tư bản",
+    STATE_REGULATION: "Điều tiết của Nhà nước",
+    TECHNOLOGICAL_PROGRESS: "Tiến bộ công nghệ",
+    MONOPOLY_FORMATION: "Hình thành độc quyền",
+    MONOPOLY_PRICING: "Giá cả độc quyền",
+    COMPETITION_ELIMINATION: "Hạn chế cạnh tranh",
+  } as Record<string, string>,
 } as const;

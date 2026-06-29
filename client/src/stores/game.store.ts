@@ -32,6 +32,7 @@ export interface ClientGameState {
     text: string;
     isVisible: boolean;
     type: "info" | "warning" | "education";
+    relatedConcept?: string;
   };
   activeQuiz: {
     question: string;
