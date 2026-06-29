@@ -21,6 +21,7 @@ import { AnimatePresence } from "framer-motion";
 import { TeamStats } from "@/components/game/team-stats";
 import { MarketShareChart } from "@/components/game/market-share-chart";
 import { Leaderboard } from "@/components/game/leaderboard";
+import { QuizModal } from "@/components/quiz/quiz-modal";
 
 function PlayerGameContent() {
   const router = useRouter();
@@ -97,33 +98,7 @@ function PlayerGameContent() {
     });
   };
 
-  // Handle quiz answer submission
-  const handleAnswerQuiz = (optionIdx: number) => {
-    if (!socket || !isConnected || !myTeam || !activeQuiz) return;
 
-    // Set local answered state
-    useGameStore.setState({
-      activeQuiz: {
-        ...activeQuiz,
-        answered: true,
-      },
-    });
-
-    // Emit to server using defined Socket event constants
-    socket.emit(SOCKET_EVENTS.PLAYER_QUIZ_ANSWER, {
-      roundId: "current",
-      teamId: myTeam.id,
-      questionId: "current", // Active question ID tracked by server engine
-      selectedOption: optionIdx,
-      timeTakenMs: 1500, // Simulated time
-    });
-
-    useUiStore.getState().addToast({
-      title: "Đã trả lời câu hỏi",
-      description: "Câu trả lời của bạn đã được gửi lên hệ thống.",
-      variant: "success",
-    });
-  };
 
   if (loading) {
     return (
@@ -266,33 +241,22 @@ function PlayerGameContent() {
 
           {/* Phase 4: Quiz session */}
           {phase === "quiz" && (
-            <Card className="border-border bg-card/40 backdrop-blur shadow-xl">
-              <CardHeader>
-                <Badge className="bg-primary/10 text-muted-foreground border border-primary/25 w-fit text-[9px] font-extrabold uppercase">
+            <Card className="border-border bg-card/40 backdrop-blur shadow-xl select-none">
+              <CardHeader className="text-center">
+                <Badge className="bg-primary/10 text-muted-foreground border border-primary/25 w-fit text-[9px] font-extrabold uppercase mx-auto">
                   THỬ THÁCH TRẮC NGHIỆM
                 </Badge>
-                <CardTitle className="text-lg font-bold mt-2">
-                  {activeQuiz ? activeQuiz.question : "Đang tải câu hỏi trắc nghiệm..."}
+                <CardTitle className="text-lg font-bold mt-3">
+                  {vi.quiz.modalTitle}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
-                {activeQuiz ? (
-                  <div className="grid gap-3">
-                    {activeQuiz.options.map((option, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => handleAnswerQuiz(idx)}
-                        disabled={activeQuiz.answered}
-                        className={`p-4 rounded-lg border text-left transition-all text-xs font-bold ${activeQuiz.answered ? 'bg-background/30 border-border text-muted-foreground' : 'bg-background/60 border-border text-foreground hover:border-accent hover:bg-card/40'}`}
-                      >
-                        <span className="text-accent font-mono mr-2">{String.fromCharCode(65 + idx)}.</span>
-                        {option}
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-muted-foreground text-center py-8">Chưa có thử thách trắc nghiệm nào hoạt động.</p>
-                )}
+              <CardContent className="py-8 text-center space-y-2">
+                <p className="text-sm font-semibold text-slate-300 animate-pulse">
+                  {vi.quiz.waitingOthers}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Bảng trắc nghiệm kiến thức đang hiển thị phía trên. Vui lòng hoàn thành câu trả lời của bạn.
+                </p>
               </CardContent>
             </Card>
           )}
@@ -335,6 +299,10 @@ function PlayerGameContent() {
 
       <AnimatePresence>
         <NarratorBox />
+      </AnimatePresence>
+
+      <AnimatePresence>
+        <QuizModal />
       </AnimatePresence>
     </div>
   );

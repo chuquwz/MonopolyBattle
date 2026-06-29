@@ -40,6 +40,14 @@ export interface ClientGameState {
     timeLimit: number;
     answered: boolean;
   } | null;
+  selectedAnswer: number | null;
+  hasAnswered: boolean;
+  quizResult: {
+    correctAnswer: number;
+    explanation: string;
+    scoreEarned: number;
+    isCorrect: boolean;
+  } | null;
   allTeams: PublicTeamInfo[];
   leaderboard: LeaderboardEntry[];
 }
@@ -58,6 +66,9 @@ export interface GameStoreState extends ClientGameState {
   setCurrentEvent: (event: GameEvent | null) => void;
   setNarration: (narration: ClientGameState["narration"]) => void;
   setActiveQuiz: (quiz: ClientGameState["activeQuiz"]) => void;
+  setSelectedAnswer: (answer: number | null) => void;
+  setHasAnswered: (hasAnswered: boolean) => void;
+  setQuizResult: (result: ClientGameState["quizResult"]) => void;
   setLeaderboard: (leaderboard: LeaderboardEntry[]) => void;
   updateMyTeam: (metrics: Partial<NonNullable<ClientGameState["myTeam"]>>) => void;
   updateAllTeams: (teams: Partial<PublicTeamInfo>[]) => void;
@@ -82,6 +93,9 @@ const initialGameState: ClientGameState = {
     type: "info",
   },
   activeQuiz: null,
+  selectedAnswer: null,
+  hasAnswered: false,
+  quizResult: null,
   allTeams: [],
   leaderboard: [],
 };
@@ -101,6 +115,9 @@ export const useGameStore = create<GameStoreState>((set) => ({
   setCurrentEvent: (currentEvent) => set({ currentEvent }),
   setNarration: (narration) => set({ narration }),
   setActiveQuiz: (activeQuiz) => set({ activeQuiz }),
+  setSelectedAnswer: (selectedAnswer) => set({ selectedAnswer }),
+  setHasAnswered: (hasAnswered) => set({ hasAnswered }),
+  setQuizResult: (quizResult) => set({ quizResult }),
   setLeaderboard: (leaderboard) => set({ leaderboard }),
   updateMyTeam: (metrics) =>
     set((state) => ({

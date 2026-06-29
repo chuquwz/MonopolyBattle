@@ -106,20 +106,42 @@ export function SocketProvider({ children, url }: SocketProviderProps) {
           timeLimit: payload.timeLimit,
           answered: false,
         },
+        selectedAnswer: null,
+        hasAnswered: false,
+        quizResult: null,
       });
       useUiStore.setState({ showQuizModal: true });
     };
 
-    const onQuizResults = (payload: any) => {
+    const onQuizResults = (payload: { correctAnswer: number; teamScores: any[]; explanation: string }) => {
       const active = useGameStore.getState().activeQuiz;
-      if (active) {
-        useGameStore.setState({
+      const myTeam = useGameStore.getState().myTeam;
+      
+      let scoreEarned = 0;
+      let isCorrect = false;
+      
+      if (myTeam) {
+        const myScoreEntry = payload.teamScores.find((t: any) => t.teamId === myTeam.id);
+        if (myScoreEntry) {
+          scoreEarned = myScoreEntry.scoreEarned ?? 0;
+          isCorrect = myScoreEntry.isCorrect ?? false;
+        }
+      }
+
+      useGameStore.setState({
+        ...(active ? {
           activeQuiz: {
             ...active,
             answered: true,
           },
-        });
-      }
+        } : {}),
+        quizResult: {
+          correctAnswer: payload.correctAnswer,
+          explanation: payload.explanation,
+          scoreEarned,
+          isCorrect,
+        },
+      });
     };
 
     const onGameOver = (payload: { finalLeaderboard: any[] }) => {

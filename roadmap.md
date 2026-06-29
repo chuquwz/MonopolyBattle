@@ -42,7 +42,7 @@ gantt
     Decision panel + Timer       :done, d5a, 5, 2h
     Event overlay + Narrator box :done, d5b, after d5a, 2h
     Market chart + Team stats    :done, d5c, after d5b, 2h
-    Quiz UI                      :d5d, after d5c, 2h
+    Quiz UI                      :done, d5d, after d5c, 2h
 
     section Day 6 — Integration
     Quiz engine + socket wiring  :d6a, 6, 3h
@@ -440,11 +440,11 @@ gantt
 
 #### Task 19 — Quiz UI `2h` `Critical`
 
-- [ ] Create components/quiz/quiz-modal.tsx — modal backdrop, 30s timer bar, question text, 4 answer buttons
-- [ ] Create components/quiz/answer-options.tsx — 2x2 grid, keyboard shortcuts A/B/C/D, lock on answer, emit player:quiz-answer
-- [ ] Create components/quiz/quiz-result.tsx — highlight correct (green) / wrong (red), show explanation + points per team, auto-advance after 8s
-- [ ] Create components/quiz/question-card.tsx — Vietnamese text formatting, category badge
-- [ ] Register quiz:start and quiz:results socket events in use-socket.ts
+- [x] Create components/quiz/quiz-modal.tsx — modal backdrop, 30s timer bar, question text, 4 answer buttons
+- [x] Create components/quiz/answer-options.tsx — 2x2 grid, keyboard shortcuts A/B/C/D, lock on answer, emit player:quiz-answer
+- [x] Create components/quiz/quiz-result.tsx — highlight correct (green) / wrong (red), show explanation + points per team, auto-advance after 8s
+- [x] Create components/quiz/question-card.tsx — Vietnamese text formatting, category badge
+- [x] Register quiz:start and quiz:results socket events in use-socket.ts
 
 **Deliverable:** Quiz appears, player answers, result shown with explanation
 
