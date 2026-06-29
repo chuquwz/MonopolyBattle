@@ -39,7 +39,7 @@ gantt
     Game page + Zustand stores   :done, d4c, after d4b, 3h
 
     section Day 5 — Game UI
-    Decision panel + Timer       :d5a, 5, 2h
+    Decision panel + Timer       :done, d5a, 5, 2h
     Event overlay + Narrator box :d5b, after d5a, 2h
     Market chart + Team stats    :d5c, after d5b, 2h
     Quiz UI                      :d5d, after d5c, 2h
@@ -408,9 +408,9 @@ gantt
 
 #### Task 16 — Decision Panel + Timer `2h` `Critical`
 
-- [ ] Create components/game/decision-card.tsx — icon, Vietnamese title, description, hover/selected/disabled states, cost-benefit preview row
-- [ ] Create components/game/decision-panel.tsx — grid of 4–6 cards, single-select, submit button, "Waiting..." state with team submission count
-- [ ] Create components/game/round-timer.tsx — circular countdown, green to yellow (30s) to red (10s), pulsing animation at less than 10s
+- [x] Create components/game/decision-card.tsx — icon, Vietnamese title, description, hover/selected/disabled states, cost-benefit preview row
+- [x] Create components/game/decision-panel.tsx — grid of 4–6 cards, single-select, submit button, "Waiting..." state with team submission count
+- [x] Create components/game/round-timer.tsx — circular countdown, green to yellow (30s) to red (10s), pulsing animation at less than 10s
 
 **Deliverable:** Player sees decisions, selects one, submits within 60s
 

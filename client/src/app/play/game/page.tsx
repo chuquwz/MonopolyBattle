@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { GameLayout } from "@/components/layout/game-layout";
 import { SOCKET_EVENTS } from "@monopoly/shared";
+import { DecisionPanel } from "@/components/game/decision-panel";
 
 function PlayerGameContent() {
   const router = useRouter();
@@ -216,52 +217,7 @@ function PlayerGameContent() {
         {/* Left/Middle area: Dynamic Game Action Components based on Active Phase */}
         <div className="lg:col-span-2 space-y-6">
           {/* Phase 1: Decisions Selection */}
-          {phase === "decision" && (
-            <Card className="border-border bg-card/40 backdrop-blur shadow-xl">
-              <CardHeader>
-                <CardTitle className="text-lg font-bold">{vi.pages.playGame.decisionsPanelTitle}</CardTitle>
-                <CardDescription className="text-xs text-muted-foreground">
-                  Hãy thảo luận cùng đồng đội và chọn 1 chiến lược kinh doanh cho vòng này. Quyết định không thể sửa đổi sau khi đã chọn.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {availableDecisions.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground text-xs">
-                    Không có quyết định nào khả dụng trong vòng này. Đang chờ server...
-                  </div>
-                ) : (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {availableDecisions.map((decision) => {
-                      const isSelected = selectedDecision === decision.type;
-                      return (
-                        <button
-                          key={decision.type}
-                          onClick={() => handleSelectDecision(decision.type)}
-                          disabled={!!selectedDecision}
-                          className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-40 ${isSelected ? 'border-accent bg-accent/10 shadow-lg' : 'border-border bg-background/40 hover:border-slate-700 hover:bg-card/40'}`}
-                        >
-                          <div className="space-y-1">
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground">
-                              Quyết định
-                            </span>
-                            <h4 className="font-extrabold text-foreground/90 text-sm leading-tight">
-                              {decision.nameVi || decision.type}
-                            </h4>
-                            <p className="text-[11px] text-muted-foreground line-clamp-3 mt-1 leading-normal font-medium">
-                              {decision.descriptionVi}
-                            </p>
-                          </div>
-                          <Badge variant={isSelected ? "default" : "outline"} className="text-[9px] w-fit">
-                            {isSelected ? "Đã chọn" : "Chi phí: " + decision.cost.toLocaleString() + " $"}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+          {phase === "decision" && <DecisionPanel />}
 
           {/* Phase 2: Events Narrative / Overlay */}
           {phase === "event" && (
