@@ -113,6 +113,7 @@ app.post('/api/auth/join', authController.join);
 
 app.post('/api/games', requireAuth, requireRole(['host']), gameController.create);
 app.get('/api/games/:id', requireAuth, gameController.getGame);
+app.get('/api/games/:id/results', requireAuth, gameController.getResults);
 
 // Attach global error middleware
 app.use(errorHandler);

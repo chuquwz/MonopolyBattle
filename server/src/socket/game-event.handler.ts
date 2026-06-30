@@ -11,20 +11,37 @@ import { DecisionEngine, DECISION_TYPES } from '../engine/decision.engine.js';
 import { logger } from '../utils/logger.js';
 import { viErrors } from '../utils/errors.js';
 import { MonopolySocket, emitToRoom } from './index.js';
+import { getEngine } from '../engine/game-engine.registry.js';
 
-// Zod schema for validating the incoming socket payload
+// ---------------------------------------------------------------------------
+// Zod schemas
+// ---------------------------------------------------------------------------
+
 const playerDecisionSchema = z.object({
   roundId: z.string().uuid('Mã vòng chơi không hợp lệ'),
   decisionType: z.string().min(1, 'Loại quyết định không hợp lệ'),
 });
 
+const playerQuizAnswerSchema = z.object({
+  questionId: z.string().min(1, 'Mã câu hỏi không hợp lệ'),
+  selectedOption: z.number().int().min(0).max(3),
+  timeTakenMs: z.number().int().min(0),
+});
+
+// ---------------------------------------------------------------------------
+// Handler registration
+// ---------------------------------------------------------------------------
+
 /**
- * Registers events triggered by players during the active game phases (e.g. decision inputs).
+ * Registers events triggered by players during the active game phases
+ * (decision inputs and quiz answers).
  */
 export function registerGameEventHandlers(socket: MonopolySocket): void {
   const { role, gameId, teamId } = socket.data;
 
-  // Handle player:decision event
+  // ---------------------------------------------------------------------------
+  // player:decision
+  // ---------------------------------------------------------------------------
   socket.on(SOCKET_EVENTS.PLAYER_DECISION, (payload: unknown) => {
     // 1. Validate credentials & permissions
     if (role !== 'player' || !teamId || !gameId) {
@@ -153,8 +170,81 @@ export function registerGameEventHandlers(socket: MonopolySocket): void {
           'All teams have submitted decisions. Early processing initiated: transitioned to event phase.'
         );
       }
+
+      // 9. Forward to in-memory engine if active (engine handles early round processing)
+      const engine = getEngine(gameId);
+      if (engine) {
+        try {
+          engine.submitDecision(teamId, decisionType);
+        } catch (engineErr) {
+          // Engine may throw if not in decision phase (e.g. already processing) — non-fatal
+          logger.debug({ gameId, teamId, engineErr }, 'Engine submitDecision skipped (non-fatal).');
+        }
+      }
     } catch (err) {
       logger.error({ gameId, roundId, teamId, err }, 'Failed to record decision submission.');
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // player:quiz-answer
+  // ---------------------------------------------------------------------------
+  socket.on(SOCKET_EVENTS.PLAYER_QUIZ_ANSWER, (payload: unknown) => {
+    // 1. Validate credentials & permissions
+    if (role !== 'player' || !teamId || !gameId) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
+      return;
+    }
+
+    // 2. Validate payload
+    const parsed = playerQuizAnswerSchema.safeParse(payload);
+    if (!parsed.success) {
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        code: 'INVALID_PAYLOAD',
+        message: parsed.error.issues[0]?.message ?? viErrors.invalidInput,
+      });
+      return;
+    }
+
+    const { questionId, selectedOption, timeTakenMs } = parsed.data;
+
+    // 3. Look up the active in-memory engine for this game
+    const engine = getEngine(gameId);
+    if (!engine) {
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        code: 'ENGINE_NOT_FOUND',
+        message: 'Trò chơi chưa được khởi động hoặc đã kết thúc.',
+      });
+      return;
+    }
+
+    // 4. Verify game is in quiz phase
+    if (engine.phase !== 'quiz') {
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        code: 'INVALID_PHASE',
+        message: 'Hiện tại không ở trong giai đoạn trả lời câu hỏi.',
+      });
+      return;
+    }
+
+    // 5. Verify the team exists in this game
+    const team = engine.teams.get(teamId);
+    if (!team) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'TEAM_NOT_FOUND', message: viErrors.teamNotFound });
+      return;
+    }
+
+    // 6. Delegate to engine (engine handles duplicate detection, scoring, and finalization)
+    try {
+      engine.submitQuizAnswer(teamId, questionId, selectedOption, timeTakenMs);
+
+      logger.info(
+        { gameId, teamId, questionId, selectedOption, timeTakenMs },
+        'Quiz answer forwarded to engine successfully.'
+      );
+    } catch (err) {
+      logger.error({ gameId, teamId, err }, 'Failed to submit quiz answer to engine.');
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
     }
   });

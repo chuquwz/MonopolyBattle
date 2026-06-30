@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from '@monopoly/shared';
 import type { GamePhase, Decision, LeaderboardEntry } from '@monopoly/shared';
+import { z } from 'zod';
 import { v4 as uuid } from 'uuid';
 import { getDatabase } from '../config/database.js';
 import { GameRepository } from '../repositories/game.repository.js';
@@ -8,9 +9,16 @@ import { RoundRepository } from '../repositories/round.repository.js';
 import { logger } from '../utils/logger.js';
 import { viErrors } from '../utils/errors.js';
 import { MonopolySocket, emitToRoom } from './index.js';
+import { ServerGameState, InMemoryTeamState } from '../engine/game.engine.js';
+import { registerEngine, getEngine } from '../engine/game-engine.registry.js';
 
 // Module-level map to track active countdown timers (protects against duplicate starts)
 const countdownIntervals = new Map<string, NodeJS.Timeout>();
+
+// Zod schema for host:trigger-event
+const hostTriggerEventSchema = z.object({
+  eventType: z.string().min(1, 'Loại sự kiện không hợp lệ'),
+});
 
 // Default round decisions matching shared types Schema structure
 const DEFAULT_DECISIONS: Decision[] = [
@@ -44,13 +52,19 @@ const DEFAULT_DECISIONS: Decision[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Handler registration
+// ---------------------------------------------------------------------------
+
 /**
  * Registers events triggered by host actions during lobby or gameplay phases.
  */
 export function registerHostHandlers(socket: MonopolySocket): void {
   const { role, gameId } = socket.data;
 
-  // 1. Handle host:start-game
+  // ---------------------------------------------------------------------------
+  // 1. host:start-game
+  // ---------------------------------------------------------------------------
   socket.on(SOCKET_EVENTS.HOST_START_GAME, () => {
     if (role !== 'host' || !gameId) {
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
@@ -99,7 +113,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     let secondsLeft = 5;
     logger.info({ gameId }, 'Host initiated game start. Starting 5-second countdown.');
 
-    // Send initial second count
     emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_COUNTDOWN, { seconds: secondsLeft });
 
     const interval = setInterval(() => {
@@ -128,18 +141,61 @@ export function registerHostHandlers(socket: MonopolySocket): void {
 
           logger.info({ gameId }, 'Countdown complete. Game session initialized to Round 1 (playing).');
 
-          // Broadcast transition to decision phase
-          emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
-            phase: 'decision',
-            roundNumber: 1,
-          });
+          // Build and register the in-memory game engine
+          const freshTeams = teamRepo.findByGameId(gameId);
+          const engine = new ServerGameState(
+            gameId,
+            game.id, // use game.id as deterministic seed (no separate seed column in schema)
+            {
+              onRoundStart: (roundNumber, decisions, duration) => {
+                emitToRoom(`room:${gameId}`, SOCKET_EVENTS.ROUND_START, {
+                  roundNumber,
+                  decisions,
+                  timeLimit: duration,
+                });
+              },
+              onRoundTick: (secondsLeft) => {
+                emitToRoom(`room:${gameId}`, SOCKET_EVENTS.ROUND_TICK, { timeLeft: secondsLeft });
+              },
+              onPhaseChange: (phase, roundNumber, data) => {
+                emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
+                  phase,
+                  roundNumber,
+                  ...(data !== undefined ? { data } : {}),
+                });
+              },
+              onGameOver: (leaderboard) => {
+                logger.info({ gameId, leaderboard: leaderboard.map((e) => e.teamName) }, 'onGameOver callback fired.');
+              },
+            },
+            db
+          );
 
-          // Broadcast decision round starting variables
-          emitToRoom(`room:${gameId}`, SOCKET_EVENTS.ROUND_START, {
-            roundNumber: 1,
-            decisions: DEFAULT_DECISIONS,
-            timeLimit: game.roundDurationSec,
-          });
+          // Register teams in engine
+          for (const t of freshTeams) {
+            const teamState: InMemoryTeamState = {
+              id: t.id,
+              name: t.name,
+              teamNumber: t.teamNumber,
+              money: t.money,
+              marketShare: t.marketShare,
+              technology: t.technology,
+              reputation: t.reputation,
+              monopolyRisk: t.monopolyRisk,
+              status: t.status,
+              totalScore: t.totalScore,
+              quizScore: t.quizScore,
+            };
+            engine.registerTeam(teamState);
+          }
+
+          // Register in global registry so other handlers can look it up
+          registerEngine(gameId, engine);
+
+          // Kick off round 1 via engine
+          engine.startRound(1);
+
+          logger.info({ gameId }, 'Game engine registered and Round 1 started.');
         } catch (err) {
           logger.error({ gameId, err }, 'Failed to transition game to playing state after countdown.');
           socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
@@ -150,7 +206,9 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     countdownIntervals.set(gameId, interval);
   });
 
-  // 2. Handle host:pause
+  // ---------------------------------------------------------------------------
+  // 2. host:pause
+  // ---------------------------------------------------------------------------
   socket.on(SOCKET_EVENTS.HOST_PAUSE, () => {
     if (role !== 'host' || !gameId) {
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
@@ -171,7 +229,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     }
 
     try {
-      // Update session status to paused
       gameRepo.update(gameId, { status: 'paused' });
       logger.info({ gameId }, 'Host paused the game.');
 
@@ -179,7 +236,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       const round = roundRepo.findByGameIdAndRoundNumber(gameId, game.currentRound);
       const currentPhase = round?.phase ?? 'decision';
 
-      // Emit transition with paused metadata attached
       emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
         phase: currentPhase,
         roundNumber: game.currentRound,
@@ -191,7 +247,9 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     }
   });
 
-  // 3. Handle host:resume
+  // ---------------------------------------------------------------------------
+  // 3. host:resume
+  // ---------------------------------------------------------------------------
   socket.on(SOCKET_EVENTS.HOST_RESUME, () => {
     if (role !== 'host' || !gameId) {
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
@@ -212,7 +270,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     }
 
     try {
-      // Resume game session status in DB
       gameRepo.update(gameId, { status: 'playing' });
       logger.info({ gameId }, 'Host resumed the game.');
 
@@ -220,7 +277,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       const round = roundRepo.findByGameIdAndRoundNumber(gameId, game.currentRound);
       const currentPhase = round?.phase ?? 'decision';
 
-      // Emit phase update representing resumed status
       emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
         phase: currentPhase,
         roundNumber: game.currentRound,
@@ -232,7 +288,9 @@ export function registerHostHandlers(socket: MonopolySocket): void {
     }
   });
 
-  // 4. Handle host:next-phase
+  // ---------------------------------------------------------------------------
+  // 4. host:next-phase
+  // ---------------------------------------------------------------------------
   socket.on(SOCKET_EVENTS.HOST_NEXT_PHASE, () => {
     if (role !== 'host' || !gameId) {
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
@@ -264,8 +322,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       let nextRoundNumber = game.currentRound;
       let isGameOver = false;
 
-      // Determine next phase based on round sequence:
-      // decision -> event -> narration -> quiz (rounds 3, 5, 7) or results -> decision (increment round) or finished
       if (round.phase === 'decision') {
         nextPhase = 'event';
       } else if (round.phase === 'event') {
@@ -291,7 +347,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       logger.info({ gameId, fromPhase: round.phase, nextPhase, nextRoundNumber }, 'Advancing game phase.');
 
       if (isGameOver) {
-        // Complete the game and calculate scoreboard ranking
         gameRepo.update(gameId, { status: 'finished' });
 
         emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
@@ -300,8 +355,8 @@ export function registerHostHandlers(socket: MonopolySocket): void {
         });
 
         const teamRepo = new TeamRepository(db);
-        const teams = teamRepo.findByGameId(gameId);
-        const sortedTeams = [...teams].sort((a, b) => b.totalScore - a.totalScore);
+        const dbTeams = teamRepo.findByGameId(gameId);
+        const sortedTeams = [...dbTeams].sort((a, b) => b.totalScore - a.totalScore);
         const finalLeaderboard: LeaderboardEntry[] = sortedTeams.map((t, idx) => ({
           rank: idx + 1,
           teamId: t.id,
@@ -315,10 +370,9 @@ export function registerHostHandlers(socket: MonopolySocket): void {
 
         emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_OVER, {
           finalLeaderboard,
-          gameStats: { totalTeams: teams.length, roundsPlayed: game.totalRounds },
+          gameStats: { totalTeams: dbTeams.length, roundsPlayed: game.totalRounds },
         });
       } else if (nextPhase === 'decision') {
-        // Set new round info in DB
         gameRepo.update(gameId, { currentRound: nextRoundNumber });
         roundRepo.create({
           id: uuid(),
@@ -330,7 +384,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
           narrationText: null,
         });
 
-        // Broadcast decision round starting variables
         emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
           phase: 'decision',
           roundNumber: nextRoundNumber,
@@ -342,7 +395,6 @@ export function registerHostHandlers(socket: MonopolySocket): void {
           timeLimit: game.roundDurationSec,
         });
       } else {
-        // Transition within the current round
         roundRepo.update(round.id, { phase: nextPhase as 'decision' | 'event' | 'quiz' | 'narration' | 'results' });
 
         emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
@@ -352,6 +404,70 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       }
     } catch (err) {
       logger.error({ gameId, err }, 'Failed to advance game phase.');
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
+    }
+  });
+
+  // ---------------------------------------------------------------------------
+  // 5. host:trigger-event
+  // ---------------------------------------------------------------------------
+  socket.on(SOCKET_EVENTS.HOST_TRIGGER_EVENT, (payload: unknown) => {
+    if (role !== 'host' || !gameId) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
+      return;
+    }
+
+    const parsed = hostTriggerEventSchema.safeParse(payload);
+    if (!parsed.success) {
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        code: 'INVALID_PAYLOAD',
+        message: parsed.error.issues[0]?.message ?? viErrors.invalidInput,
+      });
+      return;
+    }
+
+    const { eventType } = parsed.data;
+
+    const db = getDatabase();
+    const gameRepo = new GameRepository(db);
+    const game = gameRepo.findById(gameId);
+
+    if (!game) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'GAME_NOT_FOUND', message: viErrors.gameNotFound });
+      return;
+    }
+
+    if (game.status !== 'playing') {
+      socket.emit(SOCKET_EVENTS.ERROR, {
+        code: 'INVALID_STATE',
+        message: 'Trò chơi phải đang hoạt động để kích hoạt sự kiện.',
+      });
+      return;
+    }
+
+    try {
+      // Build a minimal event payload and broadcast to the room
+      const eventId = uuid();
+
+      logger.info({ gameId, eventType, eventId }, 'Host manually triggered event.');
+
+      emitToRoom(`room:${gameId}`, SOCKET_EVENTS.EVENT_TRIGGERED, {
+        eventType,
+        title: `Sự kiện đặc biệt: ${eventType}`,
+        description: `Giảng viên đã kích hoạt sự kiện "${eventType}" để minh hoạ bài học.`,
+        effects: {},
+      });
+
+      // If the engine is active, log the manual trigger
+      const engine = getEngine(gameId);
+      if (engine) {
+        logger.info(
+          { gameId, eventType, enginePhase: engine.phase },
+          'Host trigger-event: engine is active, event broadcast complete.'
+        );
+      }
+    } catch (err) {
+      logger.error({ gameId, eventType: parsed.data.eventType, err }, 'Failed to trigger event for host.');
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
     }
   });
