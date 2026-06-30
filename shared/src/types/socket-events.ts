@@ -12,6 +12,7 @@ export const SOCKET_EVENTS = {
   HOST_TRIGGER_EVENT: 'host:trigger-event',
   HOST_PAUSE: 'host:pause',
   HOST_RESUME: 'host:resume',
+  HOST_END_GAME: 'host:end-game',
   HOST_KICK_TEAM: 'host:kick-team',
   PROJECTOR_JOIN: 'projector:join',
 

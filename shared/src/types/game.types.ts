@@ -79,6 +79,7 @@ export interface LeaderboardEntry {
   teamName: string;
   teamNumber: number;
   totalScore: number;
+  quizScore?: number;
   marketShare: number;
   monopolyRisk: number;
   rankChange: 'up' | 'down' | 'same';

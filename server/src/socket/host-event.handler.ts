@@ -10,7 +10,7 @@ import { logger } from '../utils/logger.js';
 import { viErrors } from '../utils/errors.js';
 import { MonopolySocket, emitToRoom } from './index.js';
 import { ServerGameState, InMemoryTeamState } from '../engine/game.engine.js';
-import { registerEngine, getEngine } from '../engine/game-engine.registry.js';
+import { registerEngine, getEngine, removeEngine } from '../engine/game-engine.registry.js';
 
 // Module-level map to track active countdown timers (protects against duplicate starts)
 const countdownIntervals = new Map<string, NodeJS.Timeout>();
@@ -468,6 +468,73 @@ export function registerHostHandlers(socket: MonopolySocket): void {
       }
     } catch (err) {
       logger.error({ gameId, eventType: parsed.data.eventType, err }, 'Failed to trigger event for host.');
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
+    }
+  });
+  // ---------------------------------------------------------------------------
+  // 6. host:end-game  (force-finish)
+  // ---------------------------------------------------------------------------
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (socket as any).on('host:end-game', () => {
+    if (role !== 'host' || !gameId) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'FORBIDDEN', message: viErrors.forbidden });
+      return;
+    }
+
+    const db = getDatabase();
+    const gameRepo = new GameRepository(db);
+    const teamRepo = new TeamRepository(db);
+
+    const game = gameRepo.findById(gameId);
+    if (!game) {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'GAME_NOT_FOUND', message: viErrors.gameNotFound });
+      return;
+    }
+
+    if (game.status === 'finished') {
+      socket.emit(SOCKET_EVENTS.ERROR, { code: 'INVALID_STATE', message: 'Trò chơi đã kết thúc rồi.' });
+      return;
+    }
+
+    try {
+      // Mark game finished in DB
+      gameRepo.update(gameId, { status: 'finished' });
+
+      // Build final leaderboard from current DB state
+      const teams = teamRepo.findByGameId(gameId);
+      const ranked: LeaderboardEntry[] = [...teams]
+        .sort((a, b) => b.totalScore - a.totalScore)
+        .map((t, idx) => ({
+          teamId: t.id,
+          teamName: t.name,
+          teamNumber: t.teamNumber,
+          totalScore: t.totalScore,
+          quizScore: t.quizScore,
+          marketShare: t.marketShare,
+          monopolyRisk: t.monopolyRisk,
+          rank: idx + 1,
+          rankChange: 'same' as const,
+        }));
+
+      logger.info({ gameId, teams: ranked.map((r) => r.teamName) }, 'Host force-ended the game.');
+
+      emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_OVER, {
+        finalLeaderboard: ranked,
+        gameStats: {
+          educationalSummary: null,
+          roundsPlayed: game.currentRound,
+        },
+      });
+
+      emitToRoom(`room:${gameId}`, SOCKET_EVENTS.GAME_PHASE_CHANGE, {
+        phase: 'finished',
+        roundNumber: game.currentRound,
+      });
+
+      // Remove from in-memory engine registry (already statically imported above)
+      removeEngine(gameId);
+    } catch (err) {
+      logger.error({ gameId, err }, 'Failed to force-end game.');
       socket.emit(SOCKET_EVENTS.ERROR, { code: 'SERVER_ERROR', message: viErrors.serverError });
     }
   });
