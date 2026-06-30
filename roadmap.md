@@ -45,10 +45,10 @@ gantt
     Quiz UI                      :done, d5d, after d5c, 2h
 
     section Day 6 — Integration
-    Quiz engine + socket wiring  :d6a, 6, 3h
-    Projector view               :d6b, after d6a, 2h
-    Host control panel           :d6c, after d6b, 2h
-    End-to-end test run          :d6d, after d6c, 1h
+    Quiz engine + socket wiring  :done, d6a, 6, 3h
+    Projector view               :done, d6b, after d6a, 2h
+    Host control panel           :done, d6c, after d6b, 2h
+    End-to-end test run          :done, d6d, after d6c, 1h
 
     section Day 7 — Polish + Deploy
     Bug fixes + edge cases       :d7a, 7, 2h
@@ -464,13 +464,13 @@ gantt
 
 #### Task 20 — Quiz Engine (Backend) + Full Socket Wiring `3h` `Critical`
 
-- [ ] Create server/src/education/data/quizzes.json — 15 questions (5 each: monopoly definition, state monopoly, Vietnam electricity/water context)
-- [ ] Create server/src/education/quiz.engine.ts: getQuizForRound(round), scoreAnswer(), generateQuizResult()
-- [ ] Integrate quiz into GameEngine: fire on rounds 3, 5, 7; collect answers for 30s; emit quiz:results; save quiz_answer records
-- [ ] Create server/src/education/education.engine.ts — concept mapper
-- [ ] Wire remaining socket events: player:quiz-answer, host:trigger-event
-- [ ] Implement game:over: final rankings, emit to all, update DB status
-- [ ] Create GET /api/games/:id/results endpoint
+- [x] Create server/src/education/data/quizzes.json — 15 questions (5 each: monopoly definition, state monopoly, Vietnam electricity/water context)
+- [x] Create server/src/education/quiz.engine.ts: getQuizForRound(round), scoreAnswer(), generateQuizResult()
+- [x] Integrate quiz into GameEngine: fire on rounds 3, 5, 7; collect answers for 30s; emit quiz:results; save quiz_answer records
+- [x] Create server/src/education/education.engine.ts — concept mapper
+- [x] Wire remaining socket events: player:quiz-answer, host:trigger-event
+- [x] Implement game:over: final rankings, emit to all, update DB status
+- [x] Create GET /api/games/:id/results endpoint
 
 **Deliverable:** Full game cycle: lobby → rounds → quizzes → game over
 
@@ -478,11 +478,11 @@ gantt
 
 #### Task 21 — Projector View `2h` `Important`
 
-- [ ] Create app/projector/page.tsx — room code entry, connects as projector role, large-font TV layout
-- [ ] Phase-aware views: Lobby (QR code + team list), Decision (submission count + timer), Event (full-screen card), Narration (large text), Quiz (display only), Results (leaderboard), Game Over (top 3 podium)
-- [ ] Create components/projector/projector-board.tsx, narration-display.tsx, market-overview.tsx
-- [ ] Add QR code using qrcode.react library
-- [ ] Test on large screen or browser at 150% zoom
+- [x] Create app/projector/page.tsx — room code entry, connects as projector role, large-font TV layout
+- [x] Phase-aware views: Lobby (QR code + team list), Decision (submission count + timer), Event (full-screen card), Narration (large text), Quiz (display only), Results (leaderboard), Game Over (top 3 podium)
+- [x] Create components/projector/projector-board.tsx, narration-display.tsx, market-overview.tsx
+- [x] Add QR code using qrcode.react library
+- [x] Test on large screen or browser at 150% zoom
 
 **Deliverable:** Projector page shows correct content for every phase
 
@@ -490,10 +490,10 @@ gantt
 
 #### Task 22 — Host Control Panel `2h` `Important`
 
-- [ ] Create app/host/control/page.tsx — phase indicator, team submission status, round controls
-- [ ] Buttons: Pause, Force Next Phase, End Game
-- [ ] Create components/host/host-control-panel.tsx, team-list.tsx, round-controller.tsx
-- [ ] Create app/results/page.tsx — fetches final results, top 3 podium, educational concept summary
+- [x] Create app/host/control/page.tsx — phase indicator, team submission status, round controls
+- [x] Buttons: Pause, Force Next Phase, End Game
+- [x] Create components/host/host-control-panel.tsx, team-list.tsx, round-controller.tsx
+- [x] Create app/results/page.tsx — fetches final results, top 3 podium, educational concept summary
 
 **Deliverable:** Host monitors and controls game; results page shows final outcome
 
@@ -503,13 +503,13 @@ gantt
 
 > Open multiple browser tabs and simulate a complete game.
 
-- [ ] Open 3 team tabs + 1 host tab + 1 projector tab
-- [ ] Play through all 8 rounds manually
-- [ ] Verify every phase transition works correctly
-- [ ] Verify quiz appears on rounds 3, 5, 7
-- [ ] Verify monopoly detection fires and intervention applies
-- [ ] Verify game over and results page
-- [ ] Log all bugs found for Day 7 fixes
+- [x] Open 3 team tabs + 1 host tab + 1 projector tab
+- [x] Play through all 8 rounds manually
+- [x] Verify every phase transition works correctly
+- [x] Verify quiz appears on rounds 3, 5, 7
+- [x] Verify monopoly detection fires and intervention applies
+- [x] Verify game over and results page
+- [x] Log all bugs found for Day 7 fixes
 
 **Deliverable:** Game completes start-to-finish without fatal errors
 
